@@ -49,24 +49,30 @@
     <p>Owner: {{listing.owner}}</p>
     <h4>${{listing.price.bid|floatformat:2}}</h4>
     {% if user.is_authenticated %}
-        <form action="{% url 'addBid' id=listing.id %}" method="POST">
+        <form action="{% url 'addBid' id=listing.id %}" method="POST" class="form-inline my-3 p-2 rounded shadow-sm bid-form">
             {% csrf_token %}
-            <input type="number" min="0" name="newBid" placeholder="Add New Bid">
-            <button type="submit" class="btn btn-primary">Add Bid</button>
+            <div class="input-group">
+                <input type="number" min="0" name="newBid" placeholder="Add New Bid" class="form-control" required>
+                <div class="input-group-append">
+                    <button type="submit" class="btn btn-primary">Add Bid</button>
+                </div>
+            </div>
         </form>
-
     {% endif %}
     <p>{{ message }}</p>
 
     <div>
         <h3>Comments</h3>
         {% if user.is_authenticated %}
-        <form action="{% url 'addComment' id=listing.id %}" method="POST">   
+        <form action="{% url 'addComment' id=listing.id %}" method="POST" class="form-inline my-3 p-2 rounded shadow-sm bid-form">
             {% csrf_token %}
-            <input type="text" name="newComment" placeholder="Add Comment">
-            <button type="submit" class="btn btn-primary">Add</button>
+            <div class="input-group">
+                <input type="text" name="newComment" placeholder="Add Comment" class="form-control" required>
+                <div class="input-group-append">
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+            </div>
         </form>
-
         {% endif %}
     </div>
     <ul class="list-group">

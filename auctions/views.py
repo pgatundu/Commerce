@@ -3,7 +3,8 @@ from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
-
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
 from .models import User, Category, Listing, Comment, Bid
 
 
@@ -26,51 +27,46 @@ def listing(request,id):
                       "isListingInWatchlist": isListingInWatchlist,
                       "all_comments": all_comments,
                       "isOwner": isOwner 
-                  })
-def closeAuction(request,id):
-    listingData = Listing.objects.get(pk=id)
-    listingData.isActive = False
-    all_comments = Comment.objects.filter(listing=listingData)
-    isOwner = request.user.username == listingData.owner.username
-    isListingInWatchlist = listingData.watchlist.filter(id=request.user.id).exists()
-    listingData.save()
-    return render(request,"auctions/listing.html",{
-                   "listing":listingData,
-                   "isListingInWatchlist": isListingInWatchlist,
-                   "all_comments": all_comments,
-                   "isOwner": isOwner,
-                   "update": True,
-                   "message": "Congraculations!! Your Auction is closed."
-               })
+    })
 
-def addBid(request,id):
-    newBid = request.POST['newBid']
-    listingData = Listing.objects.get(pk=id)
-    isListingInWatchlist = listingData.watchlist.filter(id=request.user.id).exists()
-    all_comments = Comment.objects.filter(listing=listingData)
+def addBid(request, id):
+    listingData = get_object_or_404(Listing, pk=id)
     isOwner = request.user.username == listingData.owner.username
-    if int(newBid) > listingData.price.bid:
-        updateBid = Bid(user=request.user, bid=int(newBid))
+
+    if isOwner:
+        messages.error(request, "You cannot bid on your own listing.")
+        return redirect('listing', id=id)
+
+    try:
+        newBid = float(request.POST['newBid'])
+    except ValueError:
+        messages.error(request, "Invalid bid amount.")
+        return redirect('listing', id=id)
+
+    if newBid > listingData.price.bid:
+        updateBid = Bid(user=request.user, bid=newBid)
         updateBid.save()
         listingData.price = updateBid
         listingData.save()
-        return render (request, "auctions/listing.html",{
-            "listing": listingData,
-            "message": "Bid Updated Successfully",
-            "update": True,
-            "isListingInWatchlist": isListingInWatchlist,
-            "all_comments": all_comments,
-            "isOwner": isOwner   
-        })
+        messages.success(request, "Bid Updated Successfully.")
     else:
-         return render (request, "auctions/listing.html",{
-            "listing": listingData,
-            "message": "Bid Update Failed",
-            "update": False,
-            "isListingInWatchlist": isListingInWatchlist,
-            "all_comments": all_comments,
-            "isOwner": isOwner 
-         })    
+        messages.error(request, "Bid Update Failed. Your bid must be higher than the current price.")
+
+    return redirect('listing', id=id)
+
+def closeAuction(request, id):
+    listingData = get_object_or_404(Listing, pk=id)
+    if request.user != listingData.owner:
+        messages.error(request, "You do not have permission to close this auction.")
+        return redirect('listing', id=id)
+
+    listingData.isActive = False
+    listingData.save()
+    messages.success(request, "Congratulations!! Your auction is closed.")
+
+    return redirect('listing', id=id)
+
+
 
 
 def add_comment(request, id):
